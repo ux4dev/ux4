@@ -5,6 +5,8 @@ const Glob = require('glob-all');
 const fs = require('node-fs-extra');
 const cmd = process.argv[2];
 
+
+
 function loadCommandLineParameters() {
     let cmdParams = {};
 
