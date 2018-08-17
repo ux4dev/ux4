@@ -14,8 +14,9 @@
 		"ux4": "./src/ux4-helper.js"
 	},
 	"defaultSettings": {
-		"installdir": "\\\\m4mfs01\\ux4build\\",
-		"dev": true,
+		"repository": {
+			"path":"\\\\m4mfs01\\ux4build\\"
+		},
 		"version": "latest"
 	},
 	"config": {},

@@ -44,7 +44,7 @@ function loadSettings() {
         settings = fs.readJSONSync(settingsFile);
     }
 
-    if (!settings.installdir.endsWith(Path.sep)) settings.installdir = settings.installdir + Path.sep;
+    if (!settings.repository.path.endsWith(Path.sep)) settings.repository.path = settings.repository.path + Path.sep;
 
     if (fs.existsSync(cwd + "/app-config.json")) {
         
@@ -52,6 +52,7 @@ function loadSettings() {
         
         settings.version = appconfig.ux4.version;
         if (appconfig.ux4.dev != null) settings.dev = appconfig.ux4.dev;
+        if (appconfig.ux4.repository && appconfig.ux4.repository.path) settings.repository.path = appconfig.ux4.repository.path;
         console.log("Using settings from app-config.json : UX4 version "+settings.version+((appconfig.ux4.dev) ? " [DEVELOPER EDITION]" : ""));
     }
     else {
@@ -64,7 +65,7 @@ function loadSettings() {
 function installUX4() {
     let filename = ""
     try {
-        filename = settings.installdir + settings.version + Path.sep + "ux4app" + (settings.dev ? "_dev" : "") + ".zip";
+        filename = settings.repository.path + settings.version + Path.sep + "ux4app" + (settings.dev ? "_dev" : "") + ".zip";
         
         console.log("Installing UX4 from " + filename+"\n");
 
