@@ -3,7 +3,10 @@
 	"name": "ux4-helper",
 	"readme": "",
 	"description": "A tool to make using UX4 simpler",
-	"repository": {},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ux4dev/ux4.git"
+	  },
 	"devDependencies": {
 		"command-line-args": "^5.0.2",
 		"glob-all": "^3.1.0",
