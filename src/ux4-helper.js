@@ -62,7 +62,6 @@ function loadSettings() {
 }
 
 function installUX4() {
-    const unzip = require("unzip-stream");
     let filename = ""
     try {
         filename = settings.installdir + settings.version + Path.sep + "ux4app" + (settings.dev ? "_dev" : "") + ".zip";
