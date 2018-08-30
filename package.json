@@ -7,9 +7,7 @@
 		"type": "git",
 		"url": "git+https://github.com/ux4dev/ux4.git"
 	},
-	"devDependencies": {
-
-	},
+	"devDependencies": {},
 	"bin": {
 		"ux4": "./src/ux4-helper.js"
 	},
@@ -21,10 +19,11 @@
 	},
 	"config": {},
 	"dependencies": {
-		"decompress-zip": "^0.3.1",
-		"homedir": "^0.6.0",
-		"node-fs-extra": "^0.8.2",
 		"command-line-args": "^5.0.2",
-		"glob-all": "^3.1.0"
+		"compare-versions": "^3.3.1",
+		"decompress-zip": "^0.3.1",
+		"glob-all": "^3.1.0",
+		"homedir": "^0.6.0",
+		"node-fs-extra": "^0.8.2"
 	}
 }
