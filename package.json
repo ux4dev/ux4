@@ -1,21 +1,21 @@
 {
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"name": "ux4",
 	"readme": "",
 	"description": "Unicom UX4 command line tool",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/ux4dev/ux4.git"
-	  },
+	},
 	"devDependencies": {
-		
+
 	},
 	"bin": {
 		"ux4": "./src/ux4-helper.js"
 	},
 	"defaultSettings": {
 		"repository": {
-			"path":"\\\\m4mfs01\\ux4build\\"
+			"path": "\\\\m4mfs01\\ux4build\\"
 		},
 		"version": "latest"
 	},
