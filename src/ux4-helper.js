@@ -121,9 +121,16 @@ function loadSettings() {
         settings.version = appconfig.ux4.version;
         if (appconfig.ux4.dev != null) settings.dev = appconfig.ux4.dev;
         if (appconfig.ux4.repository && appconfig.ux4.repository.path) settings.repository.path = appconfig.ux4.repository.path;
-        setting.location = "app-config.json";
+        settings.location = "app-config.json";
+        settings.newInstall = false;
     } else {
         settings.location = settingsFile;
+        settings.newInstall = true;
+    }
+
+    //if a version has been specified on the command line (--version=xxx) use that 
+    if (params.version) {
+        settings.version = params.version;
     }
 }
 
@@ -133,9 +140,23 @@ function installUX4() {
         let filename = "";
         try {
 
+            if (!settings.version) {
+                settings.version = "latest";
+            }
+
             console.log("Using settings from " + settings.location + font.fg_yellow + ": UX4 version " + settings.version + ((settings.dev) ? " [DEVELOPER EDITION]" : "") + font.reset);
 
-            filename = settings.repository.path + settings.version + Path.sep + "ux4app" + (settings.dev ? "_dev" : "") + ".zip";
+            if (params.standalone) console.log("Installing Core UX4 controls only");
+
+            let basename = (params.standalone) ? "ux4" : "ux4app";
+
+            filename = settings.repository.path + settings.version + Path.sep + basename + (settings.dev ? "_dev" : "") + ".zip";
+
+            if (!fs.existsSync(settings.repository.path + settings.version)) {
+                console.log(font.fg_red + "ERROR : No download exists for UX4 version " + settings.version + font.reset);
+                reject();
+                return;
+            }
 
             console.log("Installing UX4 from " + font.fg_yellow + filename + "\n" + font.reset);
 
@@ -166,7 +187,14 @@ function installUX4() {
 }
 
 function runUX4InstallCommand() {
+
+
     return new Promise(function (resolve, reject) {
+        if (params.standalone) {
+            resolve();
+            return;
+        }
+
         var child = cp.fork(cwd + "/ux4/ux4app/install");
         child.on('exit', () => {
             console.log(font.fg_green + "\nCompleted package.json and NPM install\n" + font.reset);
@@ -201,22 +229,47 @@ function checkIfThisToolNeedsUpdating() {
     });
 }
 
+function shouldICreateApp() {
+    return new Promise(function (resolve, reject) {
+
+        if (params.standalone) {
+            resolve();
+            return;
+        }
+
+        let Inquirer = require("inquirer");
+
+        Inquirer.prompt({
+            name: 'createapp',
+            type: 'confirm',
+            message: 'Do you want to create a new UX4 application now?'
+        }).then((answer) => {
+            if (answer.createapp) {
+                createApp();
+            }
+        });
+    });
+}
+
+
 
 function help() {
 
     function opt(key, text) {
-        console.log(font.fg_yellow + key + font.reset + (" ".repeat(20 - key.length)) + text);
+        console.log(font.fg_yellow + key + font.reset + (" ".repeat(35 - key.length)) + text);
     }
 
     let t = appTitle + " v" + getVersion() + " Help";
     console.log(font.fg_cyan + "\n" + t);
     console.log("=".repeat(t.length) + "\n" + font.reset);
     console.log("The following options can be specified\n");
+    opt("install", "Install UX4 into your project (UX4 version pulled from the app-config.json)");
+    opt("install -version=xxx", "Install a specific UX4 version.");
+    opt("install -standalone (-version=xxx)", "Install a core UX4 which does not contain the app framework.");
+    opt("createapp", "Create a UX4 application in the current folder");
+    opt("check", "Check for a new version of UX4 Tools");
     opt("help", "Show this help screen");
     opt("version, v", "Display version information");
-    opt("install", "Install UX4 into your project");
-    opt("updatepackage", "Update the project package.json with latest node modules from UX4");
-    opt("check", "Check for a new version of UX4 Tools")
     console.log("");
 }
 
@@ -225,9 +278,21 @@ function getVersion() {
     return pkg.version;
 }
 
+function createApp() {
+    if (!fs.existsSync(cwd + "/ux4")) {
+        console.log("This folder does not contain a valid UX4. Please run " + font.fg_cyan + "ux4 install" + font.reset + " first then try again");
+        process.exit(1);
+    }
+    if (fs.existsSync(cwd + "/app-config.json")) {
+        console.log(font.fg_yellow + "This folder already contains a UX4 application" + font.reset);
+        process.exit(1);
+    }
+
+    runUX4InstallCommand();
+}
+
 
 const params = loadCommandLineParameters();
-
 switch ((cmd || "").toLowerCase()) {
     case "install":
         let t = "Install UX4";
@@ -235,13 +300,16 @@ switch ((cmd || "").toLowerCase()) {
         console.log("=".repeat(t.length) + "\n" + font.reset);
         loadSettings();
         installUX4().then(() => {
-            runUX4InstallCommand().then(() => {
-                if (checkForUpdates) checkIfThisToolNeedsUpdating();
-            });
+            if (!settings.newInstall) {
+                runUX4InstallCommand().then(() => {
+                    if (checkForUpdates) checkIfThisToolNeedsUpdating();
+                });
+            } else {
+                shouldICreateApp();
+            }
+        }).catch(() => {
+
         });
-        break;
-    case "updatepackage":
-        runUX4InstallCommand();
         break;
     case "v":
     case "version":
@@ -252,6 +320,9 @@ switch ((cmd || "").toLowerCase()) {
         checkIfThisToolNeedsUpdating().then((updateRequired) => {
             if (!updateRequired) console.log("No update required");
         });
+        break;
+    case "createapp":
+        createApp();
         break;
     case "help":
     default:
