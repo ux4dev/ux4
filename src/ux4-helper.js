@@ -132,6 +132,10 @@ function loadSettings() {
     if (params.version) {
         settings.version = params.version;
     }
+
+    if (params.dev) {
+        settings.dev = true;
+    }
 }
 
 function installUX4() {
