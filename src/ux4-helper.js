@@ -118,7 +118,7 @@ function loadSettings() {
 
         let appconfig = fs.readJSONSync(cwd + "/app-config.json");
 
-        settings.version = appconfig.ux4.version;
+        settings.version = appconfig.ux4.releaseVersion;
         if (appconfig.ux4.dev != null) settings.dev = appconfig.ux4.dev;
         if (appconfig.ux4.repository && appconfig.ux4.repository.path) settings.repository.path = appconfig.ux4.repository.path;
         settings.location = "app-config.json";
