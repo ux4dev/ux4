@@ -121,6 +121,7 @@ function loadSettings() {
         settings.version = appconfig.ux4.releaseVersion;
         if (appconfig.ux4.dev != null) settings.dev = appconfig.ux4.dev;
         if (appconfig.ux4.repository && appconfig.ux4.repository.path) settings.repository.path = appconfig.ux4.repository.path;
+		if (appconfig.mainframe == true) settings.mainframe = true;
         settings.location = "app-config.json";
         settings.newInstall = false;
     } else {
@@ -153,8 +154,10 @@ function installUX4() {
             if (params.standalone) console.log("Installing Core UX4 controls only");
 
             let basename = (params.standalone) ? "ux4" : "ux4app";
+			if (settings.mainframe) basename = basename + "_mainframe";
+			else if (settings.dev) basename = basename + "_dev";
 
-            filename = settings.repository.path + settings.version + Path.sep + basename + (settings.dev ? "_dev" : "") + ".zip";
+            filename = settings.repository.path + settings.version + Path.sep + basename + ".zip";
 
             if (!fs.existsSync(settings.repository.path + settings.version)) {
                 console.log(font.fg_red + "ERROR : No download exists for UX4 version " + settings.version + font.reset);
