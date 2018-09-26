@@ -132,7 +132,12 @@ function loadSettings() {
     //if a version has been specified on the command line (--version=xxx) use that 
     if (params.version) {
         settings.version = params.version;
+		settings.location = "command line";
     }
+	
+	if (params.mainframe) {
+		settings.mainframe = true;
+	}
 
     if (params.dev) {
         settings.dev = true;
