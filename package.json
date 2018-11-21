@@ -1,5 +1,5 @@
 {
-	"version": "1.0.5",
+	"version": "1.1.0",
 	"name": "ux4",
 	"readme": "",
 	"description": "Unicom UX4 command line tool",
@@ -11,19 +11,13 @@
 	"bin": {
 		"ux4": "./src/ux4-helper.js"
 	},
-	"defaultSettings": {
-		"repository": {
-			"path": "\\\\m4mfs01\\ux4build\\"
-		}
-	},
 	"config": {},
 	"dependencies": {
-		"command-line-args": "^5.0.2",
-		"compare-versions": "^3.3.1",
-		"decompress-zip": "^0.3.1",
-		"glob-all": "^3.1.0",
-		"homedir": "^0.6.0",
-		"inquirer": "^6.2.0",
-		"node-fs-extra": "^0.8.2"
+		"command-line-args": "5.0.2",
+		"decompress-zip": "0.3.1",
+		"glob-all": "3.1.0",
+		"inquirer": "6.2.0",
+		"fs-extra": "7.0.1",
+		"find-parent-dir": "0.3.0"
 	}
 }
