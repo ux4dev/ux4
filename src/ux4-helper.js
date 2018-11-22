@@ -238,8 +238,7 @@ function task_help() {
     console.log("The following commands can be executed:\n");
     opt("install", "Attempt to install the UX4 version sepcified in an existing app-config.json.");
     opt("install [-version=<version> | -v=<version>] (-standalone)", "Install a UX4 version. Optionally requesting a stand-alone build (no app features).");
-    opt("config", "View tool configuration");
-    opt("config [set <key> <value> | unset <key>]", "Set or unset a tool configuration");
+    opt("config", "View or modify config values.");
     opt("create-app", "Create an application at the current location. Requires a UX4 app build to be present.");
     opt("build-app", "Build the application at the current location. Arguments will pass through to the app build script.");
     opt("check-update", "Check for an update of UX4 Tools.");
@@ -358,21 +357,55 @@ function task_config() {
     let op = process.argv[3]
     let key = process.argv[4];
     let value = process.argv[5];
+    let invalid = false;
 
     try {
         switch (op) {
             case "set": {
-                Object.assign(config, { [key]: value });
-                File.writeFileSync(configFile, JSON.stringify(config, null, "\t"));
-                break;
+                if (!invalid && key !== undefined && value !== undefined) {
+                    Object.assign(config, { [key]: value });
+                    File.writeFileSync(configFile, JSON.stringify(config, null, "\t"));
+                    break;
+                } else { 
+                    invalid = true;
+                }
             }
-            case "unset": {
-                delete config[key];
-                File.writeFileSync(configFile, JSON.stringify(config, null, "\t"));
-                break;
+            case "get": 
+                if (!invalid) {
+                    console.log(JSON.stringify(key ? config[key] : config, null, 2));
+                    break;
+                } else { 
+                    invalid = true;
+                }
+            case "list": {
+                if (!invalid) {
+                    console.log(JSON.stringify(config, null, 2));
+                    break;
+                } else { 
+                    invalid = true;
+                }
+            }
+            case "delete": {
+                if (!invalid && key !== undefined) {
+                    delete config[key];
+                    File.writeFileSync(configFile, JSON.stringify(config, null, "\t"));
+                    break;
+                } else { 
+                    invalid = true;
+                }
             }
             default: {
-                console.log(JSON.stringify(config, null, 2));
+                if (invalid) logError("Invalid command");
+
+                function opt(key, text) {
+                    console.log(font.fg_yellow + key + font.reset);
+                }
+            
+                console.log("\nUsage:");
+                opt("ux4 config set <key> <value>");
+                opt("ux4 config get [<key>]");
+                opt("ux4 config delete <key>");
+                opt("ux4 config list");
                 break;
             }
         }
