@@ -202,7 +202,7 @@ function task_buildapp() {
     
         let p = process.argv.slice(3);
         let fork = ChildProcess.fork;
-        var child = fork(appcwd + "/ux4/ux4app/build.js", p);
+        var child = fork(appcwd + "/ux4/build.js", p);
         child.on('exit', function () {
             resolve();
         });
@@ -220,7 +220,7 @@ function task_createapp() {
             return;
         }
 
-        var child = ChildProcess.fork(baseDir + "/ux4/ux4app/install");
+        var child = ChildProcess.fork(baseDir + "/ux4/install");
         child.on('exit', () => {
             resolve();
         });
@@ -397,7 +397,7 @@ function task_config() {
             default: {
                 if (invalid) logError("Invalid command");
 
-                function opt(key, text) {
+                function opt(key) {
                     console.log(font.fg_yellow + key + font.reset);
                 }
             
