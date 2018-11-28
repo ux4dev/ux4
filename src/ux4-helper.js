@@ -188,6 +188,196 @@ function autoUpdateCheck() {
     return false;  
 }
 
+//Download build from path
+function downloadBuild(address, version, standalone) { 
+
+    return new Promise(async (resolve, reject) => {
+
+        try {
+            let buffer = await getBuildBuffer(address, version, standalone);
+
+            var Unzip = require("yauzl");
+            Unzip.fromBuffer(buffer, { lazyEntries: true, autoClose: true }, function (err, zipfile) {
+    
+                if (err) {
+                    reject(err);
+                    return;
+                }
+    
+                let fileIndex = 0;
+                let extractPath = (appcwd && !standalone) ? appcwd : cwd; 
+                console.log("Extracting files");
+    
+                zipfile.on("entry", function (entry) {
+    
+                    console.log(font.moveback1line + "Extracting file " + (++fileIndex) + ' of ' + zipfile.entryCount);
+    
+                    if (/\/$/.test(entry.fileName)) {
+                        
+                        //For directories ensure the dir exists locally ready for files then read next entry
+                        File.ensureDirSync(extractPath + Path.sep + entry.fileName);
+                        zipfile.readEntry();
+
+                    } else {
+    
+                        //For files read and write the file to the local system cwd
+                        zipfile.openReadStream(entry, function (err, readStream) {
+                            
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+    
+                            readStream.on("end", function () {
+                                zipfile.readEntry();
+                            });
+    
+                            //Write file to local dir
+                            try {
+                                readStream.pipe(File.createWriteStream(extractPath + Path.sep + entry.fileName));
+                            } catch (e) { 
+                                reject(e);
+                                return;
+                            }
+                        });
+                    }
+                });
+    
+                zipfile.once("end", function () {
+                    console.log(font.moveback1line + 'Extracted ' + fileIndex + ' of ' + zipfile.entryCount + ' files');
+                    resolve();
+                });
+    
+                zipfile.on("error", function () {
+                    reject(e);
+                });
+                
+                zipfile.readEntry();
+            });
+
+        } catch (e) {
+            reject(e);
+            return;
+        }
+        
+    });
+}
+
+//Get build via ftp
+function getFTPBuild(address, version, standalone) { 
+
+    return new Promise(async (resolve, reject) => { 
+
+        try {
+
+            //Create new ftp client
+            let FTP = require("basic-ftp");
+            let client = new FTP.Client();
+
+            //Get User/Pass
+            let username = params.user || config.user;
+            let password = params.password || config.password;
+            if (!username || !password) { 
+                let Inquirer = require("inquirer");
+                let answers = await Inquirer.prompt([
+                    {
+                        name: 'username',
+                        type: 'input',
+                        message: 'User',
+                        when: !username
+                    },
+                    {
+                        name: 'password',
+                        type: 'password',
+                        message: 'Password',
+                        when: !password
+                    }
+                ]);
+                username = answers.username || username;
+                password = answers.password || password;
+            }
+
+            //Access ftp server
+            await client.access({
+                host: address,
+                user: username,
+                password: password,
+                secure: true,
+                secureOptions: {
+                    rejectUnauthorized: false //Needed for self signed cert on our ftp server
+                }
+            });
+
+            //Ensure build folder for this version exists and move into it
+            try {
+                await client.cd("builds/" + version + "/");
+            } catch (e) { 
+                throw { message: "Specified version (" + version + (standalone ? " Standalone" : " Application") + ") could not be found" };
+            }
+
+            //Create a new write stream and buffer to read the zip down to
+            let buffers = [];
+            let Stream = require("stream");
+            let writeStream = new Stream.Writable({
+                write: function(chunk, encoding, next) {
+                    buffers.push(chunk);
+                    next();
+                }
+            });
+            
+            //Read the appropriate zip file then close client connection
+            await client.download(writeStream, (standalone ? "ux4" : "ux4app") + ".zip");
+            await client.close();
+
+            //Pass back the zip buffer
+            resolve(Buffer.concat(buffers));
+
+        } catch (e) { 
+            reject("FTP - " + (e.error ? (e.error.message || JSON.stringify(e.error) || e.error.code) : e.message) || "error(s) occured");
+        }
+
+    });
+}
+
+//Get build as stream
+function getBuildBuffer(address, version, standalone) { 
+
+    return new Promise(async (resolve, reject) => { 
+
+        try {
+
+            if (params.fromDir || config.fromDir) {
+
+                //Make sure to include trailing seperator
+                if (!address.endsWith(Path.sep)) {
+                    address = address + Path.sep;
+                }
+
+                //Concat full path
+                filePath = address + version + Path.sep + (standalone ? "ux4" : "ux4app") + ".zip";
+                if (!File.existsSync(filePath)) {
+                    reject("Specified version (" + version + (standalone ? " Standalone" : " Application") + ") could not be found at location:\n" + address);
+                    return;
+                }
+
+                let readStream = File.createReadStream(filePath);
+                let buffers = [];
+                readStream.on('data', (chunk) => { buffers.push(chunk); });
+                readStream.on('end', () => { resolve(Buffer.concat(buffers)); });
+                
+            } else { 
+
+                let buffer = await getFTPBuild(address, version, standalone);
+                resolve(buffer);
+
+            }
+
+        } catch (e) { 
+            reject(e);
+        }
+    }); 
+}
+
 //
 // TASKS
 //
@@ -252,12 +442,11 @@ function task_help() {
 function task_install() { 
 
     //Build info
-    let filePath;
     let address;
     let version;
     let standalone;
 
-    return new Promise(function (resolve, reject) {
+    return new Promise(async function (resolve, reject) {
         try {
 
             //If installing from local directory skip the dl part (dev tool)
@@ -267,14 +456,11 @@ function task_install() {
             }
 
             //Get address
-            address = config.address || null;
+            address = params.address || config.address || null;
             if (typeof address !== "string") {
                 throw ("No download address configured. This can be set using the command:\n\n" + font.fg_yellow + "ux4 config set address <address>");
             }
-            if (!address.endsWith(Path.sep)) {
-                address = address + Path.sep;
-            }
-
+            
             //Get version to dl
             version = params.version || params.v || (appConfig ? appConfig.ux4version : null) || null;
             if (typeof version !== "string") {
@@ -282,40 +468,20 @@ function task_install() {
             }
             standalone = params.standalone || false;
 
-            //Concat full path
-            filePath = address + version + Path.sep + (standalone ? "ux4" : "ux4app") + ".zip";
-            if (!File.existsSync(filePath)) {
-                throw ("Specified version (" + version + (standalone ? " Standalone" : " Application") + ") could not be found");
-            }
-
             //Remove old ux4 if found
             if (appcwd && File.existsSync(appcwd + Path.sep + "ux4")) {
                 console.log("Removing old build");
                 File.removeSync(appcwd + Path.sep + "ux4");
             }
 
-            console.log("Installing " + font.fg_cyan + "UX4 " + (standalone ? "Standalone" : "Application") + " version " + version + font.reset + "\n");
-
-            //Unzip file, log progress and catch errors
-            var DecompressZip = require('decompress-zip');
-            var unzipper = new DecompressZip(filePath)
-
-            unzipper.on('error', (err) => {
-                throw (err.message);
-            });
-
-            unzipper.on('progress', function (fileIndex, fileCount) {
-                console.log(font.moveback1line + "Extracting files " + (fileIndex + 1) + ' of ' + fileCount);
-            });
-
-            unzipper.on('extract', function () {
-                console.log(font.fg_green + "Installation successful" + font.reset);
+            //Download and install build
+            console.log("Retrieving " + font.fg_cyan + "UX4 " + (standalone ? "Standalone" : "Application") + " version " + version + font.reset);
+            try {
+                await downloadBuild(address, version, standalone);
                 resolve();
-            });
-
-            unzipper.extract({
-                path: (appcwd && !standalone) ? appcwd : cwd
-            });
+            } catch (e) { 
+                reject(e);
+            }
 
         } catch (e) {
             
