@@ -12,7 +12,7 @@ const configDir = process.env.APPDATA + Path.sep + "UX4";
 const configFile = configDir + Path.sep + "config.json";
 const cacheFile = configDir + Path.sep + "cache.json";
 const cwd = params.cwd ? Path.resolve(params.cwd) : process.cwd();
-const appcwd = FindParentDir.sync(cwd, "app-config.json");
+let appcwd = FindParentDir.sync(cwd, "app-config.json"); //Cannot be const as we need to modify this after creating a new app
 const semverReg = /^(\d+)\.(\d+)\.(\d+)$/;
 const font = {
     bold_on: "\x1b[1m",
@@ -275,17 +275,11 @@ function getFTPBuild(address, version, standalone) {
             let client = new FTP.Client();
 
             //Get User/Pass
-            let username = params.user || config.user;
-            let password = params.password || config.password;
-            if (!username || !password) { 
+            let username = config.user;
+            let password = config.password;
+            if (!password) { 
                 let Inquirer = require("inquirer");
                 let answers = await Inquirer.prompt([
-                    {
-                        name: 'username',
-                        type: 'input',
-                        message: 'User',
-                        when: !username
-                    },
                     {
                         name: 'password',
                         type: 'password',
@@ -293,7 +287,6 @@ function getFTPBuild(address, version, standalone) {
                         when: !password
                     }
                 ]);
-                username = answers.username || username;
                 password = answers.password || password;
             }
 
@@ -378,6 +371,41 @@ function getBuildBuffer(address, version, standalone) {
     }); 
 }
 
+//Ping the UX4 usage database
+function pingDatabase() { 
+    let fetch = require("node-fetch");
+    let [domain, port] = (config.database || "").replace(/^(http:\/\/|https:\/\/)?/, "").split(":");
+    return fetch("http://" + (domain || "") + ":" + (port || 9090) + "/AppData/Data?online", {
+        method: "GET",
+        mode: "no-cors"
+    });
+}
+
+//Register UX4 install
+function registerInstall() {
+
+    if (!appConfig) { 
+        return new Promise().reject();
+    }
+
+    let fetch = require("node-fetch");
+    let [domain, port] = (config.database || "").replace(/^(http:\/\/|https:\/\/)?/, "").split(":");
+    return fetch("http://" + (domain || "") + ":" + (port || 9090) + "/AppData/Data", {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+            "Content-Type": "application/json; charset=utf-8"
+        },
+        body: JSON.stringify({
+            userID: config.user || "",
+            ux4Version: appConfig.ux4version, 
+            appVersion: appConfig.version,
+            appName: appConfig.name,
+            appDisplayName: appConfig.displayName
+        })
+    });
+}
+
 //
 // TASKS
 //
@@ -411,7 +439,25 @@ function task_createapp() {
         }
 
         var child = ChildProcess.fork(baseDir + "/ux4/install");
-        child.on('exit', () => {
+        child.on('exit', async () => {
+
+            //Attempt to register this install against our DB
+            try {
+
+                //If we have just created a new app we first need to load the app config
+                if (!appcwd) { 
+                    appcwd = FindParentDir.sync(cwd, "app-config.json");
+                    if (!appcwd) throw ("");
+                    loadAppConfig();
+                }
+
+                //Register the install
+                await registerInstall();
+
+            } catch (e) {
+                logError("Failed to register installation");
+            }
+
             resolve();
         });
     });
@@ -594,9 +640,62 @@ function task_version() {
     loadCache();
     loadAppConfig();
 
-    //Determine and run task
+    //List of tasks which require proper initialisation before use
+    let mainTasks = ["create-app", "build-app", "install"];
+
+    //Determine task
     let task = (process.argv[2] || "").toLowerCase();
+
+    //If running a main task ensure certain config values are set
+    if (mainTasks.indexOf(task) > -1) { 
+
+        if (!config.user || !config.address || !config.database) {
+
+            console.log("Some config values are required to continue...");
+            let Inquirer = require("inquirer");
+            let answers = await Inquirer.prompt([
+                {
+                    name: 'user',
+                    type: 'input',
+                    message: 'Username',
+                    when: !config.user
+                },
+                {
+                    name: 'address',
+                    type: 'input',
+                    message: 'Address (to download builds from)',
+                    when: !config.address
+                },
+                {
+                    name: 'database',
+                    type: 'input',
+                    message: 'Database Address (to register apps with)',
+                    when: !config.database
+                }
+            ]);
+            if (answers.user) config.user = answers.user;
+            if (answers.address) config.address = answers.address;
+            if (answers.database) config.database = answers.database;
+            File.writeFileSync(configFile, JSON.stringify(config, null, "\t"));
+
+            console.log(font.fg_green + "Values updated.\n" + font.reset + "These can be modified using:\n\n" + font.fg_yellow + "ux4 config" + font.reset + "\n\nPlease re-run the desired task." + font.reset);
+            process.exit(1);
+        }
+
+        try {
+            await pingDatabase();
+        } catch (e) { 
+            logError("Failed to connect to registration database. \nPlease check the database address in your config and/or your internet connection.");
+
+            if (!params.noreg)
+                process.exit(1);
+        }    
+    }
+
+    //Run task
     switch (task) {
+
+        //Main tasks
         case "install":
 
             try {
@@ -623,7 +722,7 @@ function task_version() {
                     let answer = await Inquirer.prompt({
                         name: 'createapp',
                         type: 'confirm',
-                        message: '\nDo you want to create a new UX4 application now?'
+                        message: 'Do you want to create a new UX4 application now?'
                     });
 
                     //If yes, create a new app using the app install script
@@ -636,21 +735,6 @@ function task_version() {
                         }
                     }
                 }
-            }
-            break;
-        case "v":
-        case "version":
-            task_version();
-            break;
-        case "check-update":
-            try {
-                console.log("Checking for updates.");
-                await task_checkupdate();
-                if (compareVersions(cache.latestVersionAvailable, getVersion()) < 1)
-                    console.log(font.fg_green + "Up to date." + font.reset);
-            } catch (e) { 
-                logError(e);
-                process.exit(1);
             }
             break;
         case "create-app":
@@ -674,8 +758,25 @@ function task_version() {
                 process.exit(1);
             }
             break;
+        
+        //Util Tasks
+        case "v":
+        case "version":
+            task_version();
+            break;
         case "config":
             task_config();
+            break;
+        case "check-update":
+            try {
+                console.log("Checking for updates.");
+                await task_checkupdate();
+                if (compareVersions(cache.latestVersionAvailable, getVersion()) < 1)
+                    console.log(font.fg_green + "Up to date." + font.reset);
+            } catch (e) { 
+                logError(e);
+                process.exit(1);
+            }
             break;
         case "help":
             task_help();
@@ -687,8 +788,7 @@ function task_version() {
     }
 
     //Log update prompts after certain tasks
-    var promptTasks = ["check-update", "create-app", "build-app", "install"];
-    if (promptTasks.indexOf(task) > -1) {
+    if (mainTasks.indexOf(task) > -1 || task === "checkupdate") {
 
         //Determine if a new version should be checked for
         var check = autoUpdateCheck();
