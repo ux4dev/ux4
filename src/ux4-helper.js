@@ -448,8 +448,10 @@ function task_createapp() {
                 if (!appcwd) { 
                     appcwd = FindParentDir.sync(cwd, "app-config.json");
                     if (!appcwd) throw ("");
-                    loadAppConfig();
                 }
+
+                //Re-read the app config to get latest info!
+                loadAppConfig();
 
                 //Register the install
                 await registerInstall();
