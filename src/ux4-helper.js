@@ -790,11 +790,11 @@ function task_version() {
     }
 
     //Log update prompts after certain tasks
-    if (mainTasks.indexOf(task) > -1 || task === "checkupdate") {
+    if (mainTasks.indexOf(task) > -1 || task === "check-update") {
 
         //Determine if a new version should be checked for
         var check = autoUpdateCheck();
-        if (check && task !== "checkupdate") { 
+        if (check && task !== "check-update") { 
             try {
                 await task_checkupdate();
             } catch (e) { 
