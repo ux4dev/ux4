@@ -649,7 +649,7 @@ function task_version() {
     let task = (process.argv[2] || "").toLowerCase();
 
     //If running a main task ensure certain config values are set
-    if (mainTasks.indexOf(task) > -1) { 
+    if (mainTasks.indexOf(task) > -1) {
 
         if (!config.user || !config.address || !config.database) {
 
@@ -684,14 +684,18 @@ function task_version() {
             process.exit(1);
         }
 
-        try {
-            await pingDatabase();
-        } catch (e) { 
-            logError("Failed to connect to registration database. \nPlease check the database address in your config and/or your internet connection.");
+        //We don't need to check the database for a build-app task
+        if (task !== "build-app") {
 
-            if (!params.noreg)
-                process.exit(1);
-        }    
+            try {
+                await pingDatabase();
+            } catch (e) {
+                logError("Failed to connect to registration database. \nPlease check the database address in your config and/or your internet connection.");
+
+                if (!params.noreg)
+                    process.exit(1);
+            }
+        }
     }
 
     //Run task
