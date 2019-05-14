@@ -1,0 +1,62 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Test",
+            "program": "${workspaceFolder}\\src\\ux4-helper.js",
+            "args": ["test-app", "-m=C:\\dev\\unigw\\unigw-client\\webclient\\testing\\test.json"],
+            "cwd": "C:\\dev\\unigw\\unigw-client\\webclient"
+        },
+         {
+             "type": "node",
+             "request": "launch",
+             "name": "Install",
+             "program": "${workspaceFolder}\\src\\ux4-helper.js",
+             "args": ["install","-v=latest"],
+             "cwd": "C:\\temp\\y\\"
+         },
+         {
+             "type": "node",
+             "request": "launch",
+             "name": "Register",
+             "program": "${workspaceFolder}\\src\\ux4-helper.js",
+             "args": ["reg"],
+             "cwd": "C:\\temp\\y\\"
+         },
+         {
+             "type": "node",
+             "request": "launch",
+             "name": "Check Update",
+             "program": "${workspaceFolder}\\src\\ux4-helper.js",
+             "args": ["check-update"],
+             "cwd": "C:\\temp\\y\\"
+         },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Version",
+            "program": "${workspaceFolder}\\src\\ux4-helper.js",
+            "args": [
+                "version"
+            ],
+            "cwd": "C:\\temp\\y\\"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Register",
+            "program": "${workspaceFolder}\\src\\ux4-helper.js",
+            "args": [
+                "reg"
+            ],
+            "cwd": "C:\\temp\\y\\"
+        }
+    ]
+}
