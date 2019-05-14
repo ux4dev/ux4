@@ -77,7 +77,7 @@ async function copyTestsToTarget() {
         File.mkdirSync(copyTo);
     }
 
-    const ux4LibDir = `${UX4Tool.configDir}ux4automation/${UX4Application.getAppConfig().ux4version}/`;
+    const ux4LibDir = `${UX4Tool.configDir}/ux4automation/${UX4Application.getAppConfig().ux4version}/`;
     const files = Glob.sync(testManifest.filesToCopy, { cwd: UX4Tool.cwd });
     const ux4Files = Glob.sync(["*.js"], { cwd: ux4LibDir });
 
@@ -176,11 +176,13 @@ function resultsConsoleError(e) {
 
 
 async function runTests(browser, page) {
+    let results;
     try {
-        const results = await page.evaluate(async (entryPoint) => {
+        results = await page.evaluate(async (entryPoint, testSetsToRun, parameters) => {
             try {
                 const testing = await import(entryPoint + "?nc=" + (new Date()).getTime());
-                await testing.Tests.start("configuration-tests");
+                UX4Automation.setParameters(parameters);
+                await testing.Tests.start(...testSetsToRun);
                 return {
                     json: UX4Automation.getReport(),
                     html: UX4Automation.getReport("html", `
@@ -193,8 +195,17 @@ async function runTests(browser, page) {
             }
             catch (e) {
                 console.log(e);
+                return {
+                    json: UX4Automation.getReport(),
+                    html: UX4Automation.getReport("html", `
+                    <div>
+                        <a href="report.json" target="json">JSON</a>&nbsp; &nbsp;
+                        <a href="consoleoutput.txt" target="outputlog">Console Output</a>
+                    </div>                    
+                    `)
+                };
             };
-        }, "./" + testManifest.copyTo + "/" + testManifest.entryPoint);
+        }, "./" + testManifest.copyTo + "/" + testManifest.entryPoint, (testManifest.testSetsToRun || []), (testManifest.parameters || {}));
 
         if (results) {
             saveTestResults(results);
