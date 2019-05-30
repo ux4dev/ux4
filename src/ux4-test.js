@@ -8,7 +8,7 @@ const FTP = require("./ux4-ftp");
 const testOutputLog = [];
 
 async function downloadUX4Automation() {
-    const base = UX4Tool.configDir + "ux4automation";
+    const base = UX4Tool.configDir + Path.sep + "ux4automation";
 
 
     if (!File.existsSync(base)) {
