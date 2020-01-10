@@ -30,7 +30,6 @@ async function downloadUX4Automation() {
 
 function loadTestManifest() {
     const filename = UX4Tool.params.manifest || UX4Tool.params.m;
-    
 
     if (!File.existsSync(filename)) {
         resultsConsoleError("Please provide a valid <manifest>.json file using the -manifest parameter.\nE.g. ux4 test-app -manifest=testing/test-manifest.json");
@@ -134,7 +133,7 @@ function saveTestResults(results) {
 
     //If no path to save the results has been provided then just output the JSON to the stdout
     if (!testManifest.saveResultsTo) {
-        console.log(JSON.stringify(results.json,null,"\t"));
+        console.log(JSON.stringify(results.json, null, "\t"));
         console.log("Console Output\n==============");
         console.log(testOutputLog.join("\n"));
         return;
@@ -161,7 +160,7 @@ function saveTestResults(results) {
     }
 
     File.writeJSONSync(path + "/report.json", results.json);
-     File.writeFileSync(path + "/report.html", results.html);
+    File.writeFileSync(path + "/report.html", results.html);
     File.writeFileSync(path + "/consoleoutput.txt", testOutputLog.join("\n"));
 }
 
@@ -214,7 +213,7 @@ async function runTests(browser, page) {
             resultsConsoleError("Error No results generated");
             process.exit(1);
         }
-       console.log("Testing Completed.");
+        console.log("Testing Completed.");
 
     }
     catch (e) {
@@ -229,8 +228,6 @@ async function runTests(browser, page) {
         saveTestResults(results);
         process.exit(1);
     }
-
-    await browser.close();
 }
 
 
@@ -240,12 +237,12 @@ loadTestManifest();
 const UX4Test = {
 
     test: async function () {
-        
+
         testOutputLog.length = 0;
         await downloadUX4Automation();
         await copyTestsToTarget();
         const puppeteer = require("puppeteer");
-        const browser = await puppeteer.launch({ headless: (testManifest.headless!==false) });
+        const browser = await puppeteer.launch(testManifest.launchOptions);
         const page = await browser.newPage();
 
         page.on('console', msg => {
@@ -269,8 +266,9 @@ const UX4Test = {
 
         await page.goto(testManifest.url);
         await runTests(browser, page);
-
+        if (testManifest.closeBrowserOnCompletion === false) await browser.waitForTarget(() => false);
         removeTestsFromTarget();
+        await browser.close();
     }
 };
 
