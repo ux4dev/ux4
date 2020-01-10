@@ -4,7 +4,7 @@ const File = require('fs-extra');
 const Path = require('path');
 
 //Get build as stream
-function getBuildBuffer(address, version, filename) {
+function getBuildBuffer(version, filename) {
 
     return new Promise(async (resolve, reject) => {
 
@@ -12,6 +12,7 @@ function getBuildBuffer(address, version, filename) {
 
             if (UX4Tool.params.fromDir || UX4Tool.config.fromDir) {
 
+                let address = UX4Tool.getAddress();
                 //Make sure to include trailing seperator
                 if (!address.endsWith(Path.sep)) {
                     address = address + Path.sep;
@@ -31,7 +32,7 @@ function getBuildBuffer(address, version, filename) {
 
             } else {
 
-                let buffer = await getFTPBuild(address, version, filename);
+                let buffer = await getFTPBuild(version, filename);
                 resolve(buffer);
 
             }
@@ -41,9 +42,8 @@ function getBuildBuffer(address, version, filename) {
         }
     });
 }
-
 //Get build via ftp
-function getFTPBuild(address, version, filename) {
+function getFTPBuild(version, filename) {
 
     return new Promise(async (resolve, reject) => {
 
@@ -70,15 +70,7 @@ function getFTPBuild(address, version, filename) {
             }
 
             //Access ftp server
-            await client.access({
-                host: address,
-                user: username,
-                password: password,
-                secure: true,
-                secureOptions: {
-                    rejectUnauthorized: false //Needed for self signed cert on our ftp server
-                }
-            });
+            await client.access(FTPConnectionObject());
 
             //Ensure build folder for this version exists and move into it
             try {
@@ -111,8 +103,24 @@ function getFTPBuild(address, version, filename) {
     });
 }
 
+
+
+function FTPConnectionObject() {
+    return {
+        host: UX4Tool.getAddress(),
+        user: UX4Tool.config.user,
+        password: UX4Tool.config.password,
+        secure: true,
+        secureOptions: {
+            rejectUnauthorized: false //Needed for self signed cert on our ftp server
+        }
+    };
+}
+
+
+
 //Download build from path
-function downloadBuild(address, version, filename, extractPath) {
+function downloadBuild(version, filename, extractPath) {
 
     if (!extractPath) extractPath = ".";
     
@@ -120,7 +128,7 @@ function downloadBuild(address, version, filename, extractPath) {
     return new Promise(async (resolve, reject) => {
 
         try {
-            let buffer = await getBuildBuffer(address, version, filename);
+            let buffer = await getBuildBuffer(version, filename);
 
             var Unzip = require("yauzl");
             Unzip.fromBuffer(buffer, { lazyEntries: true, autoClose: true }, function (err, zipfile) {
@@ -187,6 +195,7 @@ function downloadBuild(address, version, filename, extractPath) {
 
     });
 }
+
 
 module.exports = {
     downloadBuild: downloadBuild

@@ -24,12 +24,13 @@ async function downloadUX4Automation() {
 
     File.mkdirSync(target);
     console.log(`Installing UX4Automation v${UX4Application.getAppConfig().ux4version}`);
-    await FTP.downloadBuild(UX4Tool.getAddress(), UX4Application.getUX4Version(), "ux4automation", target);
+    await FTP.downloadBuild(UX4Application.getUX4Version(), "ux4automation", target);
     console.log(`UX4Automation v${UX4Application.getAppConfig().ux4version} installed to ${target}`);
 }
 
 function loadTestManifest() {
     const filename = UX4Tool.params.manifest || UX4Tool.params.m;
+
 
     if (!File.existsSync(filename)) {
         resultsConsoleError("Please provide a valid <manifest>.json file using the -manifest parameter.\nE.g. ux4 test-app -manifest=testing/test-manifest.json");

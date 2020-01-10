@@ -57,6 +57,16 @@
                 "reg"
             ],
             "cwd": "C:\\temp\\y\\"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "X",
+            "program": "${workspaceFolder}\\src\\ux4-helper.js",
+            "args": [
+                "x"
+            ],
+            "cwd": "C:\\temp\\y\\"
         }
     ]
 }

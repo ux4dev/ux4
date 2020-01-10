@@ -4,12 +4,18 @@ const Path = require('path');
 const ChildProcess = require('child_process');
 
 const configDir = process.env.APPDATA + Path.sep + "UX4";
+const downloadDir = process.env.APPDATA + Path.sep + "UX4" + Path.sep + "versions" + Path.sep;
 const configFile = configDir + Path.sep + "config.json";
 const params = loadCommandLineParameters();
 const config = loadUX4ToolConfig();
 const cwd = params.cwd ? Path.resolve(params.cwd) : process.cwd();
 const cacheFile = configDir + Path.sep + "cache.json";
 var cache;
+
+if (!File.existsSync(downloadDir)) {
+    File.mkdirSync(downloadDir)
+}
+
 
 //Load config
 function loadUX4ToolConfig() {
@@ -322,7 +328,6 @@ async function promptForMissingConfigValues() {
     }
 }
 
-
 async function isUpdateAvailable(task) {
     try {
         //Determine if a new version should be checked for
@@ -345,11 +350,15 @@ async function isUpdateAvailable(task) {
     }
 }
 
+function getDownloadFolder() {
+    return downloadDir;
+}
+
 module.exports = {
-   
     filenameToType: filenameToType,
     params: params,
     configDir: configDir,
+    downloadDir: downloadDir,
     config: config,
     configOptions: configOptions,
     cwd: cwd,

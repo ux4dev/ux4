@@ -62,10 +62,56 @@ function fatalError(error) {
 }
 
 
+function resolveVersionNumber(version, _versions) {
+
+    const versions = (_versions || []).map(function (a) {
+        const parts = a.split(".");
+        return { name: a, major: Number(parts[0]), minor: Number(parts[1]), patch: Number(parts[2]) };
+    }).sort(function (a, b) {
+        return a.major === b.major ? (a.minor === b.minor ? (a.patch === b.patch ? 0 : b.patch - a.patch) : b.minor - a.minor) : b.major - a.major;
+    });
+
+    if (version === "latest") return versions[0].name || null;
+
+    const parsed = /^([\^~]{1})?([\d\*xX]+)(\.([\d\*xX]+))?(\.([\d\*xX]+))?$/.exec(version);
+
+    if (!parsed) return null;
+    const compat = parsed[1] === "^";
+    const close = parsed[1] === "~";
+
+    //Get final requirements
+    const maj = isNaN(parsed[2]) ? ">=0" : Number(parsed[2]);
+    const min = !isNaN(parsed[4]) ? (compat ? ">=" + parsed[4] : Number(parsed[4])) : (parsed[4] || compat || close ? ">=0" : ">=0");
+    const pat = !isNaN(parsed[6]) ? (compat || close ? ">=" + parsed[6] : Number(parsed[6])) : (parsed[6] || compat || close ? ">=0" : ">=0");
+
+    function comparePart(part, match) {
+
+        if (isNaN(match)) {
+            if (part >= Number(match.substr(2))) return true;
+        } else {
+            if (part === match) return true;
+        }
+
+        return false;
+    }
+
+    for (let v = 0; v < versions.length; v++) {
+        const checkVersion = versions[v];
+
+        if (comparePart(checkVersion.major, maj) && comparePart(checkVersion.minor, min) && comparePart(checkVersion.patch, pat))
+            return checkVersion.name;
+    }
+
+    return null;
+};
+
+
+
 module.exports = {
     logError: logError,
     font: font,
     semverReg:semverReg,
     fatalError: fatalError,
-    success:success
+    success: success,
+    resolveVersionNumber: resolveVersionNumber
 }
