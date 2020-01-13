@@ -24,7 +24,7 @@ async function downloadUX4Automation() {
 
     File.mkdirSync(target);
     console.log(`Installing UX4Automation v${UX4Application.getAppConfig().ux4version}`);
-    await FTP.downloadBuild(UX4Tool.getAddress(), UX4Application.getUX4Version(), "ux4automation", target);
+    await FTP.downloadBuild(UX4Tool.getAddress(), UX4Application.getUX4Version(), "resources/ux4automation", target);
     console.log(`UX4Automation v${UX4Application.getAppConfig().ux4version} installed to ${target}`);
 }
 
