@@ -6,6 +6,10 @@ const Utils = require("./utils.js");
 const UX4Application = require("./ux4-app.js");
 const FTP = require("./ux4-ftp");
 const testOutputLog = [];
+var downloadedNewAutomation = false;
+var testManifestPath;
+var testManifest;
+
 
 async function downloadUX4Automation() {
     const base = UX4Tool.configDir + Path.sep + "ux4automation";
@@ -25,19 +29,22 @@ async function downloadUX4Automation() {
     File.mkdirSync(target);
     console.log(`Installing UX4Automation v${UX4Application.getAppConfig().ux4version}`);
     await FTP.downloadBuild(UX4Tool.getAddress(), UX4Application.getUX4Version(), "resources/ux4automation", target);
+    downloadedNewAutomation = true;
     console.log(`UX4Automation v${UX4Application.getAppConfig().ux4version} installed to ${target}`);
 }
 
 function loadTestManifest() {
-    const filename = UX4Tool.params.manifest || UX4Tool.params.m;
+    let filename = Path.resolve(UX4Tool.params.manifest || UX4Tool.params.m);
 
     if (!File.existsSync(filename)) {
-        resultsConsoleError("Please provide a valid <manifest>.json file using the -manifest parameter.\nE.g. ux4 test-app -manifest=testing/test-manifest.json");
+        resultsConsoleError(`Invalid manifest: ${filename}\nPlease provide a valid <manifest>.json file using the -manifest parameter.\nE.g. ux4 test-app -manifest="testing/test-manifest.json"`);
         process.exit(1);
     }
 
     try {
+        testManifestPath = Path.dirname(filename) + Path.sep;
         testManifest = File.readJsonSync(filename);
+
         testManifest.filename = filename;
 
         testManifest = Object.assign({
@@ -66,6 +73,80 @@ function loadTestManifest() {
     }
 }
 
+async function createTestManifest() {
+
+    const Inquirer = require("inquirer");
+
+
+    let answers = await Inquirer.prompt(
+        {
+            name: 'filename',
+            type: 'input',
+            message: 'Enter a name for your manifest file'
+
+        });
+
+    if (!answers.filename || answers.filename === "") {
+        Utils.fatalError("Invalid filename specified");
+        return;
+    }
+
+
+    //Create manifest
+    const defaultManifest = {
+        "saveResultsTo": "",
+        "url": "",
+        "copyTo": ".tests",
+        "entryPoint": `${answers.filename}.js`,
+        "filesToCopy": [
+            "./*.js"
+        ],
+        "launchOptions": {
+            "devtools": false
+        },
+        "closeBrowserOnCompletion": true,
+        "removeAutomationFilesOnCompletion": true,
+        "storeOnlyLatestResults":true,
+        "parameters": {},
+        "testSetsToRun": []
+    }
+
+    //Save the manifest
+    const manifest = UX4Tool.cwd + Path.sep + answers.filename + ".manifest.json";
+    console.log("Created " + manifest);
+    File.writeFileSync(manifest, JSON.stringify(defaultManifest, null, "\t"));
+
+    //Create default test runner file
+    const testRunnerJS = `${UX4Tool.cwd}${Path.sep}${answers.filename}.js`;
+    File.copySync(__dirname + "/templates/testrunner.js", testRunnerJS);
+    console.log("Created " + testRunnerJS);
+
+}
+
+async function createTestSet() {
+    const Inquirer = require("inquirer");
+
+    let answers = await Inquirer.prompt(
+        {
+            name: 'testSetName',
+            type: 'input',
+            message: 'Enter a name for the TestSet'
+
+        });
+
+    if (!answers.testSetName || answers.testSetName === "") {
+        Utils.fatalError("Invalid testSetName specified");
+        return;
+    }
+
+    // Create testset file
+    const testsetFilename = `${UX4Tool.cwd}${Path.sep}${answers.testSetName}.js`;
+    File.copySync(__dirname + "/templates/testset.js", testsetFilename);
+    console.log("Created " + testsetFilename);
+
+    return answers.testSetName;
+}
+
 async function copyTestsToTarget() {
     let copyTo = getTestTargetFolder();
     const Glob = require('glob-all');
@@ -76,7 +157,7 @@ async function copyTestsToTarget() {
         File.mkdirSync(copyTo);
     }
 
-    const ux4LibDir = `${UX4Tool.configDir}/ux4automation/${UX4Application.getAppConfig().ux4version}/`;
+    const ux4LibDir = `${testManifestPath}UX4Automation/`;
     const files = Glob.sync(testManifest.filesToCopy, { cwd: UX4Tool.cwd });
     const ux4Files = Glob.sync(["*.js"], { cwd: ux4LibDir });
 
@@ -91,13 +172,17 @@ async function copyTestsToTarget() {
     //Copy UX4 Automation scripts
     ux4Files.forEach((file) => {
         let filenamePart = Path.basename(file);
-        File.copySync(ux4LibDir + file, copyTo + filenamePart);
+        File.copySync(ux4LibDir + file, copyTo + "UX4Automation/" + filenamePart);
         console.log("  " + filenamePart);
     });
 }
 
 async function removeTestsFromTarget() {
-    console.log("Undeploying test folder")
+    if (testManifest.removeAutomationFilesOnCompletion === false) {
+        console.log("Skipping undeployment of automation files");
+        return;
+    }
+    console.log("Undeploying test folder");
     File.removeSync(getTestTargetFolder());
 }
 
@@ -125,9 +210,21 @@ function getTestTargetFolder() {
     process.exit(1);
 }
 
+
 function saveTestResults(results) {
-    const d = new Date();
-    const path = testManifest.saveResultsTo + "/" + d.getFullYear() + String(d.getMonth()).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0") + String(d.getSeconds()).padStart(2, "0");
+    if (!testManifest.storeOnlyLatestResults) {
+        const d = new Date();
+        const folder=d.getFullYear() + String(d.getMonth()).padStart(2, "0") + String(d.getDate()).padStart(2, "0") + String(d.getHours()).padStart(2, "0") + String(d.getMinutes()).padStart(2, "0") + String(d.getSeconds()).padStart(2, "0");
+        doSaveTestResults(results, folder);
+    }
+
+    doSaveTestResults(results, "latest");
+}
+
+function doSaveTestResults(results, folder) {
+    
+    
+    const path = testManifest.saveResultsTo + "/" + folder;
 
     console.log("\nResults:\n========\nPassed: " + results.json.passed + "\nFailed: " + results.json.failed + "\nResults saved to " + path);
 
@@ -164,6 +261,50 @@ function saveTestResults(results) {
     File.writeFileSync(path + "/consoleoutput.txt", testOutputLog.join("\n"));
 }
 
+async function installUX4Automation() {
+
+    let answers = await Inquirer.prompt(
+        {
+            name: 'continue',
+            type: 'confirm',
+            message: 'This will download the UX4Automation library into the current folder. Do you want to continue?',
+            default: true
+        });
+
+    if (answers.continue) {
+        await downloadUX4Automation();
+        copyUX4AutomationLibraryIntoProject();
+    }
+}
+
+function copyUX4AutomationLibraryIntoProject() {
+    const Glob = require('glob-all');
+    let first = true;
+    const ux4LibDir = `${UX4Tool.configDir}/ux4automation/${UX4Application.getAppConfig().ux4version}/`;
+    const ux4Files = Glob.sync(["*.js", "*.d.ts"], { cwd: ux4LibDir });
+    let filesCopied = 0;
+
+    //Copy UX4 Automation scripts
+    ux4Files.forEach((file) => {
+        let filenamePart = Path.basename(file);
+        const target = UX4Tool.cwd + "UX4Automation/" + filenamePart;
+        //If new files have been downloaded from the server, or the file doesn't exist in the target folder, then copy across
+        const exists = File.existsSync(target);
+        if (downloadedNewAutomation || !exists) {
+            File.copySync(ux4LibDir + file, target);
+            if (first) console.log("Updating project with new UX4Automation files:");
+            first = false;
+            console.log(Utils.font.fg_green + ((exists) ? "   Updated " : "   Added ") + Utils.font.reset + filenamePart);
+            filesCopied++;
+        }
+
+
+    });
+
+    if (filesCopied === 0) {
+        console.log("All files up-to-date");
+    }
+}
 
 
 function resultsConsoleError(e) {
@@ -231,13 +372,11 @@ async function runTests(browser, page) {
 }
 
 
-loadTestManifest();
-
 
 const UX4Test = {
 
     test: async function () {
-
+        loadTestManifest();
         testOutputLog.length = 0;
         await downloadUX4Automation();
         await copyTestsToTarget();
@@ -269,7 +408,14 @@ const UX4Test = {
         if (testManifest.closeBrowserOnCompletion === false) await browser.waitForTarget(() => false);
         removeTestsFromTarget();
         await browser.close();
-    }
+    },
+
+    installUX4Automation: async function () {
+        await installUX4Automation();
+    },
+
+    createTestManifest: createTestManifest,
+    createTestSet: createTestSet
 };
 
 

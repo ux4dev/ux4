@@ -4,6 +4,7 @@
 const UX4Tool = require("./ux4-tool.js");
 const Utils = require("./utils.js");
 const UX4Application = require("./ux4-app.js");
+const TestLib = require("./ux4-test.js");
 
 //Register UX4 install
 function task_help() {
@@ -22,6 +23,10 @@ function task_help() {
     opt("create-app", "Create an application at the current location. Requires a UX4 app build to be present.");
     opt("build-app", "Build the application at the current location. Arguments will pass through to the app build script.");
     opt("test-app [-manifest=<manifest.json> | -m=<manifest.json>]", "Run automated application tests");
+    //opt("install-ux4automation", "Install the UX4Automation libraries in the current folder");
+    opt("create-testmanifest", "Create a UX4Automation test manifest in the current folder");
+    opt("create-testset", "Create a UX4Automation test set template");
+
     opt("check-update", "Check for an update of this UX4 Tool.");
     opt("help", "Show this help screen.");
     opt("version, v", "Display version information.");
@@ -126,8 +131,16 @@ function task_help() {
                 console.log("Application registered with UX4 Server")
                 break;
             case "test-app":
-                const Test = require("./ux4-test.js");
-                await Test.test();
+                await TestLib.test();
+                break;
+            case "create-testmanifest":
+                await TestLib.createTestManifest();
+                break;
+            case "create-testset":
+                await TestLib.createTestSet();
+                break;
+            case "install-ux4automation":
+                await TestLib.installUX4Automation ();
                 break;
             default:
                 if (process.argv[2]) Utils.logError("command '" + process.argv[2] + "' not recognised.");
