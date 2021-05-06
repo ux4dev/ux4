@@ -13,19 +13,26 @@ var cache;
 
 //Load config
 function loadUX4ToolConfig() {
-    let config;
-
     //Ensure folder exists
     File.ensureDirSync(configDir);
 
     //Check if a config file exists, if not create a new one
     if (!File.existsSync(configFile)) {
-        config = {};
-        File.writeFileSync(configFile, JSON.stringify(config, null, "\t"));
-        return config;
+        const conf = {};
+        if (params.user) conf.user = params.user;
+        if (params.database) conf.user = params.database;
+        if (params.password) conf.password = params.password;
+        if (params.address) conf.address = params.address;
+        File.writeFileSync(configFile, JSON.stringify(conf, null, "\t"));
+        return conf;
     } else {
         try {
-            return File.readJSONSync(configFile);
+            const conf = File.readJSONSync(configFile);
+            if (params.user) conf.user = params.user;
+            if (params.database) conf.user = params.database;
+            if (params.password) conf.password = params.password;
+            if (params.address) conf.address = params.address;
+            return conf;
         } catch (e) {
             logError(e);
             logError("Failed to read config from '" + configFile + "'. The file could be corrupt or the format invalid.");
