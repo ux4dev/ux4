@@ -20,7 +20,7 @@ function loadUX4ToolConfig() {
     if (!File.existsSync(configFile)) {
         const conf = {};
         if (params.user) conf.user = params.user;
-        if (params.database) conf.user = params.database;
+        if (params.database) conf.database = params.database;
         if (params.password) conf.password = params.password;
         if (params.address) conf.address = params.address;
         File.writeFileSync(configFile, JSON.stringify(conf, null, "\t"));
@@ -28,10 +28,12 @@ function loadUX4ToolConfig() {
     } else {
         try {
             const conf = File.readJSONSync(configFile);
+
             if (params.user) conf.user = params.user;
-            if (params.database) conf.user = params.database;
+            if (params.database) conf.database = params.database;
             if (params.password) conf.password = params.password;
             if (params.address) conf.address = params.address;
+            console.log(conf);
             return conf;
         } catch (e) {
             logError(e);
@@ -353,7 +355,7 @@ async function isUpdateAvailable(task) {
 }
 
 module.exports = {
-   
+
     filenameToType: filenameToType,
     params: params,
     configDir: configDir,
