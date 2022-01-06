@@ -2,6 +2,11 @@
 
 Unicom UX4 command line tool
 
+Version 2.0.0
+=============
+Remove the database logging
+Removed UX4Automation which isn't needed
+
 Version 1.7.3
 =============
 Added new actions for UX4Automation

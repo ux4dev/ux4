@@ -20,7 +20,6 @@ function loadUX4ToolConfig() {
     if (!File.existsSync(configFile)) {
         const conf = {};
         if (params.user) conf.user = params.user;
-        if (params.database) conf.database = params.database;
         if (params.password) conf.password = params.password;
         if (params.address) conf.address = params.address;
         File.writeFileSync(configFile, JSON.stringify(conf, null, "\t"));
@@ -30,10 +29,8 @@ function loadUX4ToolConfig() {
             const conf = File.readJSONSync(configFile);
 
             if (params.user) conf.user = params.user;
-            if (params.database) conf.database = params.database;
             if (params.password) conf.password = params.password;
             if (params.address) conf.address = params.address;
-            console.log(conf);
             return conf;
         } catch (e) {
             logError(e);
@@ -70,22 +67,7 @@ function filenameToType(filename) {
     switch (filename) {
         case "ux4": return "Standalone";
         case "ux4app": return "Application";
-        case "ux4automation": return "Automation"
     }
-}
-
-
-function registerInstall(installData) {
-    let fetch = require("node-fetch");
-    let [domain, port] = (config.database || "").replace(/^(http:\/\/|https:\/\/)?/, "").split(":");
-    return fetch("http://" + (domain || "") + ":" + (port || 9090) + "/AppData/Data", {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-            "Content-Type": "application/json; charset=utf-8"
-        },
-        body: JSON.stringify(installData)
-    });
 }
 
 function getAddress() {
@@ -192,24 +174,6 @@ function getVersion() {
     return pkg.version;
 }
 
-//Ping the UX4 usage database
-function pingDatabase() {
-    try {
-        const fetch = require("node-fetch");
-        const [domain, port] = (config.database || "").replace(/^(http:\/\/|https:\/\/)?/, "").split(":");
-        return fetch("http://" + (domain || "") + ":" + (port || 9090) + "/AppData/Data?online", {
-            method: "GET",
-            mode: "no-cors"
-        });
-
-    } catch (e) {
-        Utils.logError("Failed to connect to registration database. \nPlease check the database address in your config and/or your internet connection.");
-
-        if (!params.noreg)
-            Utils.fatalError();
-    }
-}
-
 //Load cache
 function loadCache() {
 
@@ -297,7 +261,7 @@ function autoUpdateCheck() {
 
 
 async function promptForMissingConfigValues() {
-    if (!config.user || !config.address || !config.database) {
+    if (!config.user || !config.address) {
 
         console.log("Some config values are required to continue...");
         let Inquirer = require("inquirer");
@@ -313,17 +277,10 @@ async function promptForMissingConfigValues() {
                 type: 'input',
                 message: 'Address (to download builds from)',
                 when: !config.address
-            },
-            {
-                name: 'database',
-                type: 'input',
-                message: 'Database Address (to register apps with)',
-                when: !config.database
             }
         ]);
         if (answers.user) config.user = answers.user;
         if (answers.address) config.address = answers.address;
-        if (answers.database) config.database = answers.database;
         File.writeFileSync(configFile, JSON.stringify(config, null, "\t"));
 
         console.log(Utils.font.fg_green + "Values updated.\n" + Utils.font.reset + "These can be modified using:\n\n" + Utils.font.fg_yellow + "ux4 config" + Utils.font.reset + "\n\nPlease re-run the desired task." + Utils.font.reset);
@@ -363,10 +320,8 @@ module.exports = {
     configOptions: configOptions,
     cwd: cwd,
     getAddress: getAddress,
-    registerInstall: registerInstall,
     getVersion: getVersion,
     checkForUpdate: checkForUpdate,
-    pingDatabase: pingDatabase,
     loadCache: loadCache,
     promptForMissingConfigValues: promptForMissingConfigValues,
     isUpdateToDate: isUpdateToDate,

@@ -32,9 +32,6 @@ function createApplication() {
                     if (!appcwd) throw ("");
                 }
 
-                //Register the install
-                await registerInstall();
-
             } catch (e) {
                 Utils.logError("Failed to register installation");
             }
@@ -61,20 +58,6 @@ function buildApp() {
     });
 }
 
-
-function registerInstall() {
-    if (!appConfig) {
-        return new Promise().reject();
-    }
-
-    UX4Tool.registerInstall({
-        userID: UX4Tool.config.user || "",
-        ux4Version: appConfig.ux4version,
-        appVersion: appConfig.version,
-        appName: appConfig.name,
-        appDisplayName: appConfig.displayName
-    });
-}
 
 function updateAppCwd(a) {
     appcwd = a + Path.sep;
@@ -121,7 +104,7 @@ function installUX4() {
             console.log("Retrieving " + Utils.font.fg_cyan + "UX4 " + UX4Tool.filenameToType(filename) + " version " + version + Utils.font.reset);
             try {
                 const FTP = require("./ux4-ftp");
-                await FTP.downloadBuild(address, version, filename, (standalone ? UX4Tool.cwd : appcwd));
+                await FTP.downloadBuild(address, version, filename, (standalone ? UX4Tool.cwd : (appcwd || UX4Tool.cwd)));
                 resolve();
             } catch (e) {
                 reject(e);
@@ -148,7 +131,6 @@ module.exports = {
         return appcwd;
     },
 
-    registerInstall: registerInstall,
     installUX4: installUX4,
     buildApp: buildApp
 }

@@ -14,16 +14,6 @@
             "args": ["test-app", "-m=test.manifest.json"],
             "cwd": "C:\\dev\\unigw\\portal\\testing"
         },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Install UX4Automation",
-            "program": "${workspaceFolder}\\src\\ux4-helper.js",
-            "args": [
-                "install-ux4automation"
-            ],
-            "cwd": "C:\\dev\\unigw\\portal\\testing\\"
-        },
          {
              "type": "node",
              "request": "launch",

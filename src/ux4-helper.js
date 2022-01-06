@@ -45,20 +45,7 @@ function task_help() {
 
     //If running a main task ensure certain config values are set
     if (mainTasks.includes(task)) {
-
         await UX4Tool.promptForMissingConfigValues();
-
-        //We don't need to check the database for a build-app task
-        if (task !== "build-app") {
-            try {
-                await UX4Tool.pingDatabase();
-            } catch (e) {
-                Utils.logError("Failed to connect to registration database. \nPlease check the database address in your config and/or your internet connection.");
-
-                if (!UX4Tool.params.noreg)
-                    process.exit(1);
-            }
-        }
     }
 
     //Run task
@@ -119,10 +106,6 @@ function task_help() {
                 break;
             case "help":
                 task_help();
-                break;
-            case "reg":
-                await UX4Application.registerInstall();
-                console.log("Application registered with UX4 Server")
                 break;
             default:
                 if (process.argv[2]) Utils.logError("command '" + process.argv[2] + "' not recognised.");
