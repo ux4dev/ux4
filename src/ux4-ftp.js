@@ -73,11 +73,7 @@ function getFTPBuild(address, version, filename) {
             await client.access({
                 host: address,
                 user: username,
-                password: password,
-                secure: true,
-                secureOptions: {
-                    rejectUnauthorized: false //Needed for self signed cert on our ftp server
-                }
+                password: password
             });
 
             //Ensure build folder for this version exists and move into it
