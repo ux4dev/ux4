@@ -1,5 +1,5 @@
 {
-	"version": "1.8.1",
+	"version": "2.0.0",
 	"name": "ux4",
 	"readme": "",
 	"description": "UNICOM UX4 command line tool",
@@ -17,9 +17,7 @@
 		"command-line-args": "5.0.2",
 		"find-parent-dir": "0.3.0",
 		"fs-extra": "7.0.1",
-		"glob-all": "3.1.0",
 		"inquirer": "6.2.0",
-		"node-fetch": "2.3.0",
 		"yauzl": "2.10.0"
 	}
 }
