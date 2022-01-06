@@ -2,6 +2,10 @@
 
 Unicom UX4 command line tool
 
+Version 2.0.1
+=============
+Remove secure FTP properties which were failing
+
 Version 2.0.0
 =============
 Remove the database logging
