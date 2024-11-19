@@ -143,7 +143,7 @@ async function checkForUpdate() {
     return new Promise(function (resolve, reject) {
 
         const cmd = (/^win/.test(process.platform)) ? "npm.cmd" : "npm";
-        let child = ChildProcess.spawn(cmd, ["show", "ux4", "version"]);
+        let child = ChildProcess.spawn(cmd, ["show", "ux4", "version"],{shell:true});
         let latestVersion;
 
         child.stdout.on('data', function (data) {
