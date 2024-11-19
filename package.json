@@ -1,5 +1,5 @@
 {
-	"version": "2.0.1",
+	"version": "2.0.2",
 	"name": "ux4",
 	"readme": "",
 	"description": "UNICOM UX4 command line tool",
@@ -9,7 +9,7 @@
 	},
 	"devDependencies": {},
 	"bin": {
-		"ux4": "./src/ux4-helper.js"
+		"ux4": "src/ux4-helper.js"
 	},
 	"config": {},
 	"dependencies": {
